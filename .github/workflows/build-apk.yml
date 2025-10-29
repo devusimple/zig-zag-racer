@@ -1,32 +1,49 @@
-name: Build Android APK
+name: Build APK with Buildozer
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
 
-      - name: Fix User Permissions for Buildozer (Create 'user')
-        run: |
-          # Create a dummy 'user' with UID/GID matching runner (102:114 in GitHub Actions)
-          sudo groupadd -g 114 user || true
-          sudo useradd -u 102 -g 114 -m user || true
-          echo "User 'user' created: $(id user)"
-        # This runs on host; Docker will inherit via mounts
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Build APK with Buildozer
         id: buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
+        env:
+          USER: root
+          HOME_DIR: /root
         with:
-          workdir: .  # Your repo root
+          repository_root: .
+          workdir: .
           buildozer_version: stable
-          command: build  # Or 'android debug' if preferred
+          command: build
+
+      - name: Show build output directory (debug)
+        if: always()
+        run: |
+          echo "=== Root directory ==="
+          ls -la || true
+          echo "=== Bin directory ==="
+          ls -la bin || true
+
+      - name: Fix artifact permissions (best-effort)
+        if: always()
+        run: |
+          if [ -d bin ]; then
+            sudo chown -R $UID:$GID bin || true
+            sudo chmod -R a+r bin || true
+          fi
 
       - name: Upload APK Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: zigzag-racer-apk
-          path: ${{ steps.buildozer.outputs.apk }}  # Auto-uploads bin/*.apk
+          path: bin/*.apk
