@@ -1,0 +1,24 @@
+name: Build Android APK
+
+on: [push, pull_request]  # Triggers on code pushes
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Cloud Ubuntu server (free, powerful)
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Build APK with Buildozer
+        id: buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        with:
+          workdir: .  # Your repo root
+          buildozer_version: stable  # Latest Buildozer
+          command: build  # Builds APK
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zigzag-racer-apk
+          path: ${{ steps.buildozer.outputs.apk }}  # Auto-uploads bin/*.apk
