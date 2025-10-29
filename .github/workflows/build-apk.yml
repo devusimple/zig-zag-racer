@@ -1,21 +1,29 @@
 name: Build Android APK
 
-on: [push, pull_request]  # Triggers on code pushes
+on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Cloud Ubuntu server (free, powerful)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+
+      - name: Fix User Permissions for Buildozer (Create 'user')
+        run: |
+          # Create a dummy 'user' with UID/GID matching runner (102:114 in GitHub Actions)
+          sudo groupadd -g 114 user || true
+          sudo useradd -u 102 -g 114 -m user || true
+          echo "User 'user' created: $(id user)"
+        # This runs on host; Docker will inherit via mounts
 
       - name: Build APK with Buildozer
         id: buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
         with:
           workdir: .  # Your repo root
-          buildozer_version: stable  # Latest Buildozer
-          command: build  # Builds APK
+          buildozer_version: stable
+          command: build  # Or 'android debug' if preferred
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
